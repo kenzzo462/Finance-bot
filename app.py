@@ -1,15 +1,18 @@
-import streamlit as st
-import requests
 
-# Page setup
+import streamlit as st
+from huggingface_hub import InferenceClient
+
+# Get token and model from Streamlit secrets
+HF_API_KEY = st.secrets["HF_API_KEY"]
+MODEL_ID = st.secrets.get("MODEL_ID", "google/flan-t5-small")
+
+# Initialize Hugging Face Inference client
+client = InferenceClient(HF_API_KEY)
+
+# Streamlit App
 st.set_page_config(page_title="Finance AI Chatbot", page_icon="💹")
 st.title("💹 Finance AI Chatbot")
 st.write("Ask anything about finance, investing, or money management!")
-
-# Hugging Face API key from secrets
-HF_API_KEY = st.secrets["HF_API_KEY"]
-API_URL = "https://api-inference.huggingface.co/models/facebook/opt-1.3b"
-headers = {"Authorization": f"Bearer {HF_API_KEY}"}
 
 # Initialize chat history
 if "messages" not in st.session_state:
@@ -18,27 +21,28 @@ if "messages" not in st.session_state:
 # User input
 user_input = st.chat_input("Type your finance question here...")
 
-def query_hf(payload):
-    response = requests.post(API_URL, headers=headers, json=payload)
-    if response.status_code == 200:
-        return response.json()[0]['generated_text']
-    else:
-        return f"Error: {response.status_code} - {response.text}"
-
 if user_input:
-    # Add user message
+    # Add user message to chat history
     st.session_state.messages.append({"role": "user", "content": user_input})
 
-    # Call Hugging Face API
-    prompt = f"Answer as a helpful financial assistant. Question: {user_input}"
-    bot_reply = query_hf({"inputs": prompt, "parameters": {"max_new_tokens": 150}})
-    
+    # Query Hugging Face model
+    try:
+        output = client.text_generation(
+            model=MODEL_ID,
+            inputs=user_input,
+            max_new_tokens=150
+        )
+        bot_reply = output[0]["generated_text"].strip()
+    except Exception as e:
+        bot_reply = f"Error: {str(e)}"
+
+    # Add assistant reply to chat history
     st.session_state.messages.append({"role": "assistant", "content": bot_reply})
 
 # Display chat history
 for msg in st.session_state.messages:
     if msg["role"] == "user":
         st.chat_message("user").write(msg["content"])
-    else:
+    elif msg["role"] == "assistant":
         st.chat_message("assistant").write(msg["content"])
-        
+    

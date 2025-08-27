@@ -1,8 +1,8 @@
 import streamlit as st
 from openai import OpenAI
-import streamlit as st
-OPENAI_API_KEY = st.secrets["OPENAI_API_KEY"]
 
+# Get API key from Streamlit Secrets
+OPENAI_API_KEY = st.secrets["OPENAI_API_KEY"]
 
 # Initialize OpenAI client
 client = OpenAI(api_key=OPENAI_API_KEY)
@@ -27,17 +27,18 @@ if "messages" not in st.session_state:
 user_input = st.chat_input("Type your finance question here...")
 
 if user_input:
-    # Add user message
     st.session_state.messages.append({"role": "user", "content": user_input})
 
     # Get AI response
-    response = client.chat.completions.create(
-        model="gpt-3.5-turbo",
-        messages=st.session_state.messages
-    )
-
-    bot_reply = response.choices[0].message.content
-    st.session_state.messages.append({"role": "assistant", "content": bot_reply})
+    try:
+        response = client.chat.completions.create(
+            model="gpt-3.5-turbo",
+            messages=st.session_state.messages
+        )
+        bot_reply = response.choices[0].message["content"]
+        st.session_state.messages.append({"role": "assistant", "content": bot_reply})
+    except Exception as e:
+        st.error(f"Error: {e}")
 
 # Display chat history
 for msg in st.session_state.messages:

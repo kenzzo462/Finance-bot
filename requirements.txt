@@ -1,4 +1,2 @@
-streamlit==1.25.0
-transformers
-torch
-accelerate
+streamlit
+huggingface_hub

@@ -1,8 +1,8 @@
 import streamlit as st
 from openai import OpenAI
+import streamlit as st
+OPENAI_API_KEY = st.secrets["OPENAI_API_KEY"]
 
-# 🔑 Replace with your OpenAI API key
-OPENAI_API_KEY = "your_api_key_here"
 
 # Initialize OpenAI client
 client = OpenAI(api_key=OPENAI_API_KEY)

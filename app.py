@@ -1,16 +1,24 @@
-
 import streamlit as st
-from huggingface_hub import InferenceClient
+from transformers import pipeline
 
-# Get token and model from Streamlit secrets
-HF_API_KEY = st.secrets["HF_API_KEY"]
-MODEL_ID = st.secrets.get("MODEL_ID", "google/flan-t5-small")
+# Get Hugging Face token from secrets
+HF_TOKEN = st.secrets["HF_TOKEN"]
 
-# Initialize Hugging Face Inference client
-client = InferenceClient(HF_API_KEY)
+# Initialize Hugging Face text-generation pipeline
+@st.cache_resource
+def get_model():
+    return pipeline(
+        "text-generation",
+        model="google/flan-t5-small",  # lightweight model
+        tokenizer="google/flan-t5-small",
+        device=-1,  # CPU
+        use_auth_token=HF_TOKEN
+    )
 
-# Streamlit App
-st.set_page_config(page_title="Finance AI Chatbot", page_icon="💹")
+generator = get_model()
+
+# Streamlit app setup
+st.set_page_config(page_title="Finance Chatbot", page_icon="💹")
 st.title("💹 Finance AI Chatbot")
 st.write("Ask anything about finance, investing, or money management!")
 
@@ -25,24 +33,19 @@ if user_input:
     # Add user message to chat history
     st.session_state.messages.append({"role": "user", "content": user_input})
 
-    # Query Hugging Face model
-    try:
-        output = client.text_generation(
-            model=MODEL_ID,
-            inputs=user_input,
-            max_new_tokens=150
-        )
-        bot_reply = output[0]["generated_text"].strip()
-    except Exception as e:
-        bot_reply = f"Error: {str(e)}"
+    # Generate AI response
+    output = generator(
+        f"Answer as a helpful financial assistant. Question: {user_input}",
+        max_length=200,
+        do_sample=True
+    )
 
-    # Add assistant reply to chat history
+    bot_reply = output[0]["generated_text"]
     st.session_state.messages.append({"role": "assistant", "content": bot_reply})
 
 # Display chat history
 for msg in st.session_state.messages:
     if msg["role"] == "user":
         st.chat_message("user").write(msg["content"])
-    elif msg["role"] == "assistant":
+    else:
         st.chat_message("assistant").write(msg["content"])
-    
